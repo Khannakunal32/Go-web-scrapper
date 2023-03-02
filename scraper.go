@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -57,11 +59,11 @@ func main() {
 		RandomDelay: 5 * time.Second,
 	})
 
-	c.SetRequestTimeout(120 * time.Second)
+	// c.SetRequestTimeout(120 * time.Second)
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("visiting", r.URL)
 	})
-
+	
 	infoCollector.OnRequest(func(r *colly.Request) {
 		fmt.Println("visiting product URL:", r.URL.String())
 	})
@@ -74,38 +76,19 @@ func main() {
 		fmt.Println("Got this error:", e)
 	})
 
-	// var items []item
-	var itemsOuter []itemOuter
-	var itemsInner []itemInner
+	// var itemsOuter []itemOuter
+	// var itemsInner []itemInner
+
+	var items []item
+	itemObj := item{}
+
 	sno := 0
-
-	// c.OnHTML("div.grid-item__content", func(h *colly.HTMLElement) {
-
-	// 	// fmt.Println(h.ChildAttr("a.grid-item__link", "href"))
-	// 	sno += 1
-
-	// 	// item := item{
-	// 	// 	Sno:          sno,
-	// 	// 	Name:         h.ChildText("div.grid-product__title"),
-	// 	// 	Image_url:    "x",
-	// 	// 	Description:  "x",
-	// 	// 	Origin:       "x",
-	// 	// 	OfferPrice:   h.ChildText("div.grid-product__price span.grid-product__price--current span.visually-hidden"),
-	// 	// 	Price:        h.ChildText("div.grid-product__price span.grid-product__price--original span.visually-hidden"),
-	// 	// 	Review_count: h.ChildAttr("div.jdgm-widget div.jdgm-prev-badge", "data-number-of-reviews"),
-	// 	// 	Rating:       h.ChildAttr("div.jdgm-widget div.jdgm-prev-badge", "data-average-rating"),
-	// 	// 	Id:           "x",
-	// 	// 	Weight:       "x",
-	// 	// 	Item_link:    h.ChildAttr("a.grid-item__link", "href"),
-	// 	// }
-
-	// 	// items = append(items, item)
-	// })
 
 	// jumping inside the open site
 
 	c.OnHTML("div.grid-item__content", func(h *colly.HTMLElement) {
-		itemObj := itemOuter{}
+		// itemObj := itemOuter{}
+
 		sno += 1
 
 		itemObj.Sno = sno
@@ -124,24 +107,20 @@ func main() {
 		productUrl := h.ChildAttr("a.grid-item__link", "href")
 		productUrl = h.Request.AbsoluteURL(productUrl)
 
+		// if productUrl == "https://cococart.in/collections/shop-all/products/after-eight-mint-chocolate-thins" {
 		infoCollector.Visit(productUrl)
-		itemsOuter = append(itemsOuter, itemObj)
-		// items = append(items, itemObj)
+		// }
+		items = append(items, itemObj)
+		itemObj = item{}
 	})
 
 	infoCollector.OnHTML("main#MainContent", func(h *colly.HTMLElement) {
-		// fmt.Println(h.ChildAttr("div.product-image-main div.image-wrap > img", "data-photoswipe-src")) // Image_url
-		// fmt.Println(h.ChildText("div.product-block > div.rte > p:first")) // description
-		// fmt.Println(h.ChildText("div.product-block > div.rte > p:nth-child(2)")) // Origin
-		// fmt.Println(h.ChildText("fieldset > div.variant-input > label.variant__button-label")) // weight
-		itemObj := itemInner{
-			Image_url:   h.ChildAttr("div.product-image-main div.image-wrap > img", "data-photoswipe-src"),
-			Description: h.ChildText("div.product-block > div.rte > p:first"),
-			Origin:      h.ChildText("div.product-block > div.rte > p:nth-child(2)"),
-			Weight:      h.ChildText("fieldset > div.variant-input > label.variant__button-label"),
-		}
 
-		itemsInner = append(itemsInner, itemObj)
+		itemObj.Image_url = h.ChildAttr("div.product-image-main div.image-wrap > img", "data-photoswipe-src")
+		// itemObj.Description = h.ChildText("div.product-block > div.rte > p:first")
+		itemObj.Description = h.ChildText("div.product-block > div.rte > p:nth-child(1)")
+		itemObj.Origin = h.ChildText("div.product-block > div.rte > p:nth-child(2)")
+		itemObj.Weight = h.ChildText("fieldset > div.variant-input > label.variant__button-label")
 
 	})
 
@@ -160,17 +139,17 @@ func main() {
 	c.Visit("https://cococart.in/collections/shop-all?sort_by=title-ascending")
 	// c.Wait()
 	// fmt.Println(items)
-	fmt.Println(itemsOuter)
-	fmt.Println(itemsInner)
+	// fmt.Println(itemsOuter)
+	// fmt.Println(itemsInner)
 
-	// content, err := json.MarshalIndent(items, "", "\t")
+	content, err := json.MarshalIndent(items, "", "\t")
 
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// }
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
-	// os.WriteFile("products.json", content, 0644)
-	// fmt.Println("output", string(content))
+	os.WriteFile("chocolate1.json", content, 0644)
+	fmt.Println("output", string(content))
 
 }
 
