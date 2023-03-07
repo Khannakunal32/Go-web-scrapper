@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/extensions"
 )
 
 type item struct {
@@ -51,20 +52,28 @@ func main() {
 	// colly.Debugger(&debug.LogDebugger{}), // Attach debugger to collector
 	)
 
+	// 	proxySwitcher, err := proxy.RoundRobinProxySwitcher("socks5://188.226.141.127:1080", "socks5://67.205.132.241:1080")
+	// if err != nil {
+	//   log.Fatal(err)
+	// }
+	// c.SetProxyFunc(proxySwitcher)
+
 	infoCollector := c.Clone()
 
 	c.Limit(&colly.LimitRule{
 		DomainGlob: "*cococart.*",
 		// Parallelism: 2,
-		RandomDelay: 5 * time.Second,
+		RandomDelay: 3 * time.Second,
 	})
 
 	// c.SetRequestTimeout(120 * time.Second)
 	c.OnRequest(func(r *colly.Request) {
+		extensions.RandomUserAgent(c)
 		fmt.Println("visiting", r.URL)
 	})
-	
+
 	infoCollector.OnRequest(func(r *colly.Request) {
+		extensions.RandomUserAgent(c)
 		fmt.Println("visiting product URL:", r.URL.String())
 	})
 
@@ -125,15 +134,16 @@ func main() {
 	})
 
 	c.OnRequest(func(r *colly.Request) {
+		extensions.RandomUserAgent(c)
 		fmt.Println(r.URL.String())
 	})
 
 	c.OnHTML("[title=Next]", func(h *colly.HTMLElement) {
 		nextPage := h.Request.AbsoluteURL(h.Attr("href"))
 		fmt.Println(nextPage)
-		if nextPage == "https://cococart.in/collections/shop-all?page=100&sort_by=title-ascending" {
-			c.Visit(nextPage)
-		}
+		// if nextPage == "https://cococart.in/collections/shop-all?page=100&sort_by=title-ascending" {
+		c.Visit(nextPage)
+		// }
 	})
 
 	c.Visit("https://cococart.in/collections/shop-all?sort_by=title-ascending")
@@ -148,13 +158,13 @@ func main() {
 		fmt.Println(err.Error())
 	}
 
-	os.WriteFile("chocolate1.json", content, 0644)
+	os.WriteFile("chocolate2.json", content, 0644)
 	fmt.Println("output", string(content))
 
 }
 
 // type item struct {
-// 	Name   string `json:"name"`
+// 	Name   string `json:"name"
 // 	Price  string `json:"price"`
 // 	ImgUrl string `json:"imgUrl"`
 // }
